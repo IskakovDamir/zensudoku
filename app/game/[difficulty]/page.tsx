@@ -13,6 +13,7 @@ export default async function GamePage({
   params: Promise<{ difficulty: string }>;
 }) {
   const { difficulty } = await params;
+  if (difficulty === 'daily') redirect('/daily');
   if (!VALID.includes(difficulty)) redirect('/');
   return <GameView difficulty={difficulty} />;
 }

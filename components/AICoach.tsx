@@ -5,29 +5,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { type CellState } from '@/hooks/useSudoku';
 import { type Difficulty } from '@/lib/sudoku-engine';
 
-const DAILY_LIMIT = 5;
+const SESSION_LIMIT = 5;
 
 const EXAMPLE_PROMPTS = [
   'What strategy should I use?',
-  'Why does 7 go here?',
+  'Why does this number fit?',
   'Explain naked pairs',
   'What is a hidden single?',
 ];
 
-function getUsageKey() {
-  return `ai-coach-${new Date().toISOString().split('T')[0]}`;
-}
-
-function getQueriesUsed(): number {
-  if (typeof window === 'undefined') return 0;
-  return parseInt(localStorage.getItem(getUsageKey()) ?? '0', 10);
-}
-
-function incrementQueries() {
-  const key = getUsageKey();
-  const n = parseInt(localStorage.getItem(key) ?? '0', 10);
-  localStorage.setItem(key, String(n + 1));
-}
 
 interface Props {
   board: CellState[][];
@@ -36,37 +22,31 @@ interface Props {
   selected: [number, number] | null;
 }
 
-export function AICoach({ board, solution, difficulty, selected }: Props) {
+export function AICoach({ board, solution, difficulty: _difficulty, selected }: Props) {
   const [isOpen, setIsOpen] = useState(false);
   const [question, setQuestion] = useState('');
+  const [lastQuestion, setLastQuestion] = useState('');
   const [response, setResponse] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [queriesUsed, setQueriesUsed] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [inputFocused, setInputFocused] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
-  const responseRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Read localStorage only on client
   useEffect(() => {
-    setQueriesUsed(getQueriesUsed());
-  }, []);
-
-  // Auto-scroll response
-  useEffect(() => {
-    if (responseRef.current) {
-      responseRef.current.scrollTop = responseRef.current.scrollHeight;
+    if (messagesRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight;
     }
   }, [response]);
 
-  // Focus input when opened
   useEffect(() => {
     if (isOpen) setTimeout(() => inputRef.current?.focus(), 150);
   }, [isOpen]);
 
-  const hasReachedLimit = queriesUsed >= DAILY_LIMIT;
-  const queriesLeft = DAILY_LIMIT - queriesUsed;
-
+  const hasReachedLimit = queriesUsed >= SESSION_LIMIT;
+  const queriesLeft = SESSION_LIMIT - queriesUsed;
   const selectedHasValue = selected ? board[selected[0]]?.[selected[1]]?.value !== 0 : false;
 
   const askCoach = useCallback(
@@ -74,6 +54,7 @@ export function AICoach({ board, solution, difficulty, selected }: Props) {
       if (hasReachedLimit || isStreaming) return;
 
       const q = prompt ?? question.trim();
+      setLastQuestion(q || (selected ? `Explain cell R${selected[0] + 1}C${selected[1] + 1}` : ''));
 
       setResponse('');
       setError(null);
@@ -109,9 +90,7 @@ export function AICoach({ board, solution, difficulty, selected }: Props) {
           setResponse(text);
         }
 
-        incrementQueries();
-        const used = getQueriesUsed();
-        setQueriesUsed(used);
+        setQueriesUsed((prev) => prev + 1);
         setQuestion('');
       } catch (e) {
         if ((e as Error).name !== 'AbortError') {
@@ -126,9 +105,7 @@ export function AICoach({ board, solution, difficulty, selected }: Props) {
   );
 
   function handleClose() {
-    if (isStreaming) {
-      abortRef.current?.abort();
-    }
+    if (isStreaming) abortRef.current?.abort();
     setIsOpen(false);
   }
 
@@ -139,192 +116,247 @@ export function AICoach({ board, solution, difficulty, selected }: Props) {
     }
   }
 
+  const sendDisabled = hasReachedLimit || isStreaming || (!question.trim() && !selected);
+  const hasContent = response || isStreaming || error;
+
   return (
     <>
-      {/* Floating button */}
+      {/* ── Floating trigger ──────────────────────────────────────────── */}
       <motion.button
+        data-coach="button"
         onClick={() => setIsOpen((o) => !o)}
-        whileTap={{ scale: 0.94 }}
-        className={`
-          fixed bottom-[4.75rem] right-4 sm:bottom-5 sm:right-5 z-40
-          flex items-center gap-2
-          px-4 py-2.5 rounded-full
-          text-sm font-medium
-          shadow-lg
-          transition-colors duration-150
-          ${isOpen
-            ? 'bg-zinc-700 text-zinc-200'
-            : 'bg-zinc-900 text-zinc-200 hover:bg-zinc-800 ring-1 ring-zinc-700'
+        whileTap={{ scale: 0.96 }}
+        aria-label={isOpen ? 'Close AI Coach' : 'Open AI Coach'}
+        onMouseEnter={e => {
+          if (!isOpen) {
+            e.currentTarget.style.borderColor = 'rgba(255,110,180,0.65)';
+            e.currentTarget.style.boxShadow = '0 8px 40px rgba(255,110,180,0.28), inset 0 1px 0 rgba(255,255,255,0.08)';
           }
-        `}
-        aria-label="Open AI Coach"
+        }}
+        onMouseLeave={e => {
+          if (!isOpen) {
+            e.currentTarget.style.borderColor = 'rgba(255,110,180,0.35)';
+            e.currentTarget.style.boxShadow = '0 8px 32px rgba(255,110,180,0.15), inset 0 1px 0 rgba(255,255,255,0.08)';
+          }
+        }}
+        style={{
+          position: 'fixed',
+          bottom: 28,
+          right: 28,
+          zIndex: 101,
+          padding: '13px 22px',
+          borderRadius: 100,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          background: 'rgba(10,10,10,0.92)',
+          border: isOpen
+            ? '1px solid rgba(255,255,255,0.2)'
+            : '1px solid rgba(255,110,180,0.35)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          boxShadow: isOpen
+            ? '0 4px 20px rgba(0,0,0,0.4)'
+            : '0 8px 32px rgba(255,110,180,0.15), inset 0 1px 0 rgba(255,255,255,0.08)',
+          cursor: 'pointer',
+          transition: 'border-color .25s, box-shadow .25s',
+        } as React.CSSProperties}
       >
-        <span>🧠</span>
-        <span>Ask Coach</span>
-        {!isOpen && queriesLeft < DAILY_LIMIT && (
-          <span className="text-[10px] text-zinc-500 ml-0.5">{queriesLeft}/{DAILY_LIMIT}</span>
+        {isOpen ? (
+          <>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', lineHeight: 1 }}>✕</span>
+            <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)', fontFamily: 'var(--font-dm)', fontWeight: 300 }}>Close</span>
+          </>
+        ) : (
+          <>
+            <motion.div
+              animate={{ scale: [1, 1.3, 1], opacity: [0.85, 1, 0.85] }}
+              transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+              style={{ width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,110,180,0.9)', boxShadow: '0 0 8px rgba(255,110,180,0.5)', flexShrink: 0 }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.92)', fontFamily: 'var(--font-dm)', fontWeight: 400, lineHeight: 1.25 }}>Ask AI Coach</span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.38)', fontFamily: 'var(--font-dm)', letterSpacing: '0.04em', lineHeight: 1.25 }}>
+                {queriesLeft}/{SESSION_LIMIT} per game
+              </span>
+            </div>
+          </>
         )}
       </motion.button>
 
-      {/* Panel */}
+      {/* ── Panel ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 360, damping: 28 }}
-            className="
-              fixed bottom-[8.25rem] right-4 sm:bottom-20 sm:right-5 z-40
-              w-[calc(100vw-32px)] sm:w-[calc(100vw-40px)] max-w-[380px]
-              bg-zinc-900 border border-zinc-700/80
-              rounded-2xl shadow-2xl
-              flex flex-col overflow-hidden
-            "
+            data-coach="panel"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            style={{
+              position: 'fixed',
+              bottom: 100,
+              right: 28,
+              width: 'min(380px, calc(100vw - 56px))',
+              borderRadius: 20,
+              background: 'rgba(10,10,10,0.95)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(40px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+              boxShadow: '0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.05)',
+              overflow: 'hidden',
+              zIndex: 100,
+            } as React.CSSProperties}
           >
+            {/* Iridescent top line */}
+            <div style={{
+              position: 'absolute',
+              top: 0, left: 0, right: 0,
+              height: 1,
+              background: 'linear-gradient(90deg, transparent, #ff6eb4, #b06aff, #6ab0ff, transparent)',
+              backgroundSize: '200% 100%',
+              animation: 'iris 4s linear infinite',
+            }} />
+
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-zinc-100">AI Coach</span>
-                <span className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 ring-1 ring-orange-500/20">
-                  Claude <span className="text-orange-500">✦</span>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontFamily: 'var(--font-playfair)', fontSize: 16, color: '#fff', fontWeight: 400 }}>AI Coach</span>
+                <span style={{ fontSize: 10, padding: '3px 10px', borderRadius: 100, background: 'rgba(255,110,180,0.12)', color: '#ff6eb4', border: '1px solid rgba(255,110,180,0.25)', letterSpacing: '0.06em', fontFamily: 'var(--font-dm)' }}>
+                  Claude ✦
                 </span>
               </div>
               <button
                 onClick={handleClose}
-                className="p-1 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors"
+                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#fff'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; }}
+                style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s, color .15s', flexShrink: 0, lineHeight: 1 }}
+                aria-label="Close"
               >
-                <XIcon className="w-4 h-4" />
+                ✕
               </button>
             </div>
 
-            {/* Response area */}
+            {/* Messages */}
             <div
-              ref={responseRef}
-              className="min-h-[100px] max-h-[200px] overflow-y-auto px-4 py-3 text-sm text-zinc-200 leading-relaxed"
+              ref={messagesRef}
+              className="coach-scroll"
+              style={{ padding: '16px 20px', maxHeight: 260, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}
             >
-              {isStreaming && !response && (
-                <div className="flex items-center gap-1.5 text-zinc-500">
-                  <span className="animate-pulse text-xs">Thinking</span>
-                  <ThinkingDots />
-                </div>
-              )}
-
-              {response && (
-                <p className="whitespace-pre-wrap">
-                  {response}
-                  {isStreaming && (
-                    <motion.span
-                      animate={{ opacity: [1, 0, 1] }}
-                      transition={{ repeat: Infinity, duration: 0.8 }}
-                      className="inline-block w-0.5 h-3.5 bg-zinc-400 ml-0.5 align-middle"
-                    />
-                  )}
-                </p>
-              )}
-
-              {error && <p className="text-red-400 text-xs">{error}</p>}
-
-              {!response && !isStreaming && !error && (
-                <p className="text-zinc-600 text-xs italic">
+              {!hasContent && (
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-dm)', fontWeight: 300, fontStyle: 'italic', lineHeight: 1.6 }}>
                   Ask about strategy, a specific cell, or a technique.
                 </p>
               )}
-            </div>
 
-            {/* Divider */}
-            <div className="border-t border-zinc-800" />
-
-            {/* Quick actions */}
-            <div className="px-4 py-2.5 flex flex-col gap-2">
-              {/* Explain cell button */}
-              {selected && !selectedHasValue && (
-                <button
-                  onClick={() => askCoach()}
-                  disabled={hasReachedLimit || isStreaming}
-                  className="
-                    w-full text-left text-xs px-3 py-2 rounded-lg
-                    bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20
-                    hover:bg-blue-500/20 transition-colors
-                    disabled:opacity-40 disabled:cursor-not-allowed
-                    flex items-center gap-2
-                  "
-                >
-                  <TargetIcon className="w-3.5 h-3.5 shrink-0" />
-                  Explain cell R{selected[0] + 1}C{selected[1] + 1}
-                </button>
+              {lastQuestion && hasContent && (
+                <div style={{ alignSelf: 'flex-end', maxWidth: '80%', background: 'rgba(255,110,180,0.08)', border: '1px solid rgba(255,110,180,0.15)', borderRadius: 14, padding: '10px 14px', fontSize: 13, color: 'rgba(255,110,180,0.85)', fontFamily: 'var(--font-dm)', fontWeight: 300, lineHeight: 1.6 }}>
+                  {lastQuestion}
+                </div>
               )}
 
-              {/* Example prompts */}
-              <div className="flex flex-wrap gap-1.5">
-                {EXAMPLE_PROMPTS.map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => { setQuestion(p); askCoach(p); }}
-                    disabled={hasReachedLimit || isStreaming}
-                    className="
-                      text-[11px] px-2.5 py-1 rounded-full
-                      bg-zinc-800 text-zinc-400
-                      hover:bg-zinc-700 hover:text-zinc-200
-                      transition-colors
-                      disabled:opacity-40 disabled:cursor-not-allowed
-                    "
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
+              {(response || isStreaming || error) && (
+                <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, padding: '14px 16px', fontSize: 13, color: error ? 'rgba(255,100,100,0.85)' : 'rgba(255,255,255,0.78)', fontFamily: 'var(--font-dm)', fontWeight: 300, lineHeight: 1.7 }}>
+                  {isStreaming && !response && <ThinkingDots />}
+                  {response && (
+                    <span style={{ whiteSpace: 'pre-wrap' }}>
+                      {response}
+                      {isStreaming && (
+                        <motion.span
+                          animate={{ opacity: [1, 0, 1] }}
+                          transition={{ repeat: Infinity, duration: 0.9 }}
+                          style={{ display: 'inline-block', width: 2, height: 13, background: 'rgba(255,110,180,0.9)', marginLeft: 2, verticalAlign: 'middle' }}
+                        />
+                      )}
+                    </span>
+                  )}
+                  {error && !response && error}
+                </div>
+              )}
             </div>
 
-            {/* Input */}
-            <div className="border-t border-zinc-800 px-3 py-2.5">
-              <div className="flex items-center gap-2">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={hasReachedLimit ? 'Daily limit reached' : 'Ask a question…'}
-                  disabled={hasReachedLimit || isStreaming}
-                  className="
-                    flex-1 bg-zinc-800 text-zinc-100 text-sm
-                    placeholder:text-zinc-600
-                    rounded-lg px-3 py-2
-                    outline-none focus:ring-1 focus:ring-zinc-600
-                    disabled:opacity-40 disabled:cursor-not-allowed
-                  "
-                />
-                <motion.button
+            {/* Suggested chips */}
+            <div style={{ padding: '0 20px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {selected && !selectedHasValue && (
+                <Chip
+                  label={`Explain R${selected[0] + 1}C${selected[1] + 1}`}
                   onClick={() => askCoach()}
-                  whileTap={{ scale: 0.88 }}
-                  disabled={hasReachedLimit || isStreaming || (!question.trim() && !selected)}
-                  className="
-                    p-2 rounded-lg
-                    bg-zinc-700 text-zinc-300
-                    hover:bg-zinc-600 hover:text-zinc-100
-                    transition-colors
-                    disabled:opacity-40 disabled:cursor-not-allowed
-                  "
-                  aria-label="Send"
-                >
-                  <SendIcon className="w-4 h-4" />
-                </motion.button>
-              </div>
+                  disabled={hasReachedLimit || isStreaming}
+                  accent
+                />
+              )}
+              {EXAMPLE_PROMPTS.map((p) => (
+                <Chip
+                  key={p}
+                  label={p}
+                  onClick={() => { setQuestion(p); askCoach(p); }}
+                  disabled={hasReachedLimit || isStreaming}
+                />
+              ))}
+            </div>
 
-              {/* Usage */}
-              <div className="flex items-center justify-between mt-2 px-1">
-                {hasReachedLimit ? (
-                  <p className="text-[10px] text-red-400">
-                    Daily limit reached. <span className="text-zinc-500">Resets at midnight.</span>
-                  </p>
-                ) : (
-                  <p className="text-[10px] text-zinc-600">
-                    {queriesLeft} free {queriesLeft === 1 ? 'query' : 'queries'} left today
-                  </p>
-                )}
-                <span className="text-[10px] text-zinc-700">AI-powered by Claude</span>
-              </div>
+            {/* Input row */}
+            <div style={{ padding: '12px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onFocus={() => setInputFocused(true)}
+                onBlur={() => setInputFocused(false)}
+                placeholder={hasReachedLimit ? 'Daily limit reached' : 'Ask a question…'}
+                disabled={hasReachedLimit || isStreaming}
+                style={{
+                  flex: 1,
+                  background: inputFocused ? 'rgba(255,110,180,0.05)' : 'rgba(255,255,255,0.05)',
+                  border: inputFocused ? '1px solid rgba(255,110,180,0.35)' : '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 12,
+                  padding: '11px 16px',
+                  fontSize: 13,
+                  color: '#fff',
+                  fontFamily: 'var(--font-dm)',
+                  fontWeight: 300,
+                  outline: 'none',
+                  transition: 'border-color .2s, background .2s',
+                  opacity: hasReachedLimit || isStreaming ? 0.45 : 1,
+                }}
+              />
+              <motion.button
+                onClick={() => askCoach()}
+                whileTap={{ scale: 0.88 }}
+                disabled={sendDisabled}
+                onMouseEnter={e => { if (!sendDisabled) e.currentTarget.style.background = 'rgba(255,110,180,0.25)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,110,180,0.15)'; }}
+                aria-label="Send"
+                style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,110,180,0.15)', border: '1px solid rgba(255,110,180,0.25)', color: '#ff6eb4', fontSize: 18, cursor: sendDisabled ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .2s', opacity: sendDisabled ? 0.35 : 1, flexShrink: 0 }}
+              >
+                ↑
+              </motion.button>
+            </div>
+
+            {/* Footer */}
+            <div style={{ padding: '0 20px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.04em',
+                  fontFamily: 'var(--font-dm)',
+                  color: hasReachedLimit
+                    ? 'rgba(255,80,80,0.5)'
+                    : queriesLeft === 1
+                      ? 'rgba(255,180,80,0.6)'
+                      : 'rgba(255,255,255,0.25)',
+                  cursor: hasReachedLimit ? 'pointer' : 'default',
+                }}
+              >
+                {hasReachedLimit
+                  ? 'Upgrade for unlimited →'
+                  : `${queriesLeft} free ${queriesLeft === 1 ? 'query' : 'queries'} per game`}
+              </span>
+              <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', fontFamily: 'var(--font-dm)', letterSpacing: '0.04em' }}>
+                AI-powered by Claude
+              </span>
             </div>
           </motion.div>
         )}
@@ -333,44 +365,52 @@ export function AICoach({ board, solution, difficulty, selected }: Props) {
   );
 }
 
+function Chip({ label, onClick, disabled, accent }: { label: string; onClick: () => void; disabled: boolean; accent?: boolean }) {
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      onMouseEnter={e => {
+        if (!disabled) {
+          e.currentTarget.style.background = accent ? 'rgba(106,176,255,0.1)' : 'rgba(255,110,180,0.08)';
+          e.currentTarget.style.borderColor = accent ? 'rgba(106,176,255,0.25)' : 'rgba(255,110,180,0.2)';
+          e.currentTarget.style.color = accent ? 'rgba(106,176,255,0.85)' : 'rgba(255,110,180,0.8)';
+        }
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.09)';
+        e.currentTarget.style.color = 'rgba(255,255,255,0.45)';
+      }}
+      style={{
+        fontSize: 11,
+        padding: '5px 12px',
+        borderRadius: 100,
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        color: 'rgba(255,255,255,0.45)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'all .2s',
+        fontFamily: 'var(--font-dm)',
+        fontWeight: 300,
+        opacity: disabled ? 0.38 : 1,
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
 function ThinkingDots() {
   return (
-    <span className="flex gap-0.5">
+    <div style={{ display: 'flex', gap: 5, alignItems: 'center', padding: '2px 0' }}>
       {[0, 1, 2].map((i) => (
         <motion.span
           key={i}
-          animate={{ opacity: [0.2, 1, 0.2] }}
-          transition={{ repeat: Infinity, duration: 1, delay: i * 0.2 }}
-          className="w-1 h-1 rounded-full bg-zinc-500 inline-block"
+          animate={{ opacity: [0.2, 1, 0.2], scale: [0.75, 1, 0.75] }}
+          transition={{ repeat: Infinity, duration: 1.2, delay: i * 0.2 }}
+          style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,110,180,0.55)', display: 'inline-block' }}
         />
       ))}
-    </span>
-  );
-}
-
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-}
-
-function SendIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-    </svg>
-  );
-}
-
-function TargetIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="3" strokeWidth={2} />
-      <path strokeLinecap="round" strokeWidth={2}
-        d="M12 2v3m0 14v3M2 12h3m14 0h3" />
-    </svg>
+    </div>
   );
 }

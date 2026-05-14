@@ -1,37 +1,38 @@
-'use client';
+'use client'
+import { useState, useEffect } from 'react'
 
-import { useTheme } from '@/hooks/useTheme';
+export default function ThemeToggle() {
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark')
 
-export function ThemeToggle() {
-  const { isDark, toggle } = useTheme();
+  useEffect(() => {
+    const saved = (localStorage.getItem('zen_theme') as 'dark' | 'light') || 'dark'
+    setTheme(saved)
+    document.documentElement.setAttribute('data-theme', saved)
+  }, [])
+
+  const toggle = () => {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    localStorage.setItem('zen_theme', next)
+    document.documentElement.setAttribute('data-theme', next)
+  }
 
   return (
     <button
+      data-toggle="theme"
       onClick={toggle}
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className="p-2 rounded-lg text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+      title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+      style={{
+        width: 34, height: 34, borderRadius: '50%',
+        background: theme === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        border: theme === 'dark' ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.15)',
+        color: theme === 'dark' ? '#ffffff' : '#1a1a1c',
+        fontSize: 15, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all .2s', flexShrink: 0,
+      }}
     >
-      {isDark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
+      {theme === 'dark' ? '☀' : '☾'}
     </button>
-  );
-}
-
-function SunIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364l-.707.707M6.343 17.657l-.707.707M17.657 17.657l.707.707M7.05 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"
-      />
-    </svg>
-  );
-}
-
-function MoonIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-        d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
-      />
-    </svg>
-  );
+  )
 }

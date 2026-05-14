@@ -105,6 +105,18 @@ function reducer(state: GameState, action: Action): GameState {
       const next = cloneBoard(state.board);
       next[row][col] = { ...next[row][col], value: action.value, notes: new Set() };
 
+      // Clear placed number from notes of all cells in same row, col, and 3×3 box
+      const boxRow = Math.floor(row / 3) * 3;
+      const boxCol = Math.floor(col / 3) * 3;
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (r === row && c === col) continue;
+          if (r === row || c === col || (r >= boxRow && r < boxRow + 3 && c >= boxCol && c < boxCol + 3)) {
+            next[r][c].notes.delete(action.value);
+          }
+        }
+      }
+
       const withConflicts = applyConflicts(next);
       const raw = withConflicts.map((r) => r.map((c) => c.value));
       const complete = isComplete(raw, state.solution);
@@ -188,14 +200,22 @@ function reducer(state: GameState, action: Action): GameState {
           : emptyCells[0];
 
       const [row, col] = target;
+      const hintValue = state.solution[row][col];
       const prev = cloneBoard(state.board);
       const next = cloneBoard(state.board);
-      next[row][col] = {
-        ...next[row][col],
-        value: state.solution[row][col],
-        isHint: true,
-        notes: new Set(),
-      };
+      next[row][col] = { ...next[row][col], value: hintValue, isHint: true, notes: new Set() };
+
+      // Clear hint value from notes of all cells in same row, col, and 3×3 box
+      const boxRow = Math.floor(row / 3) * 3;
+      const boxCol = Math.floor(col / 3) * 3;
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+          if (r === row && c === col) continue;
+          if (r === row || c === col || (r >= boxRow && r < boxRow + 3 && c >= boxCol && c < boxCol + 3)) {
+            next[r][c].notes.delete(hintValue);
+          }
+        }
+      }
 
       const withConflicts = applyConflicts(next);
       const raw = withConflicts.map((r) => r.map((c) => c.value));
