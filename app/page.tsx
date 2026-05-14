@@ -57,7 +57,7 @@ export default function HomePage() {
         />
 
         {/* ── Navbar ─────────────────────────────────────────────────────── */}
-        <nav className="glass fixed top-5 left-5 right-5 z-50 rounded-[100px] px-5 py-3 flex items-center justify-between">
+        <nav className="hero-nav">
           {/* Left: brand */}
           <div className="flex items-center gap-2">
             <span
@@ -95,7 +95,7 @@ export default function HomePage() {
 
             <Link
               href="/pro"
-              className="glass-iridescent rounded-full px-4 py-1.5 text-[13px] text-white/90 hover:text-white transition-colors whitespace-nowrap"
+              className="hero-ghost-btn px-4 py-1.5 text-[13px] text-white/90 hover:text-white transition-colors whitespace-nowrap"
               style={{ fontFamily: 'var(--font-dm-sans)' }}
             >
               Upgrade ✦
@@ -111,7 +111,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-5 max-w-xl">
               {/* Badge */}
               <span
-                className="inline-flex w-fit text-[10px] uppercase tracking-[0.22em] text-white/50 border border-white/15 rounded-full px-3 py-1"
+                className="hero-badge"
                 style={{ fontFamily: 'var(--font-dm-sans)' }}
               >
                 The sudoku experience, reimagined
@@ -147,7 +147,7 @@ export default function HomePage() {
                 </Link>
                 <Link
                   href="/game/daily"
-                  className="glass rounded-full px-6 py-2.5 text-[14px] text-white/90 hover:text-white transition-colors"
+                  className="hero-ghost-btn px-6 py-2.5 text-[14px] text-white/90 hover:text-white transition-colors"
                   style={{ fontFamily: 'var(--font-dm-sans)' }}
                 >
                   Today&apos;s challenge →
@@ -158,7 +158,7 @@ export default function HomePage() {
             {/* RIGHT: stats cards */}
             <div className="flex flex-row lg:flex-col gap-3 w-full lg:w-[280px] overflow-x-auto pb-1 lg:overflow-visible">
               {/* Players today */}
-              <div className="glass-iridescent rounded-2xl px-5 py-4 flex-shrink-0 w-[200px] lg:w-auto">
+              <div className="hero-card px-5 py-4 flex-shrink-0 w-[200px] lg:w-auto">
                 <div
                   className="text-[32px] font-bold text-white leading-none mb-1"
                   style={{ fontFamily: 'var(--font-playfair)' }}
@@ -174,7 +174,7 @@ export default function HomePage() {
               </div>
 
               {/* Daily puzzle */}
-              <div className="glass-iridescent rounded-2xl px-5 py-4 flex-shrink-0 w-[200px] lg:w-auto">
+              <div className="hero-card px-5 py-4 flex-shrink-0 w-[200px] lg:w-auto">
                 <div
                   className="text-[32px] font-bold text-white leading-none mb-1"
                   style={{ fontFamily: 'var(--font-playfair)' }}
@@ -190,7 +190,7 @@ export default function HomePage() {
               </div>
 
               {/* AI Coach */}
-              <div className="glass-strong rounded-2xl px-5 py-4 flex-shrink-0 w-[200px] lg:w-auto">
+              <div className="hero-card px-5 py-4 flex-shrink-0 w-[200px] lg:w-auto">
                 <div className="flex items-center gap-2 mb-2">
                   {/* Pulsing dot */}
                   <span className="relative flex h-2 w-2 flex-shrink-0">

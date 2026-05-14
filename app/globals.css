@@ -11,6 +11,11 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Strip browser defaults from all nav elements so class styles take full control */
+nav {
+  all: unset;
+}
+
 :root {
   --bg: #ffffff;
   --fg: #09090b;
@@ -32,7 +37,7 @@ body {
   color: var(--fg);
 }
 
-/* ─── Liquid Glass utilities ───────────────────────────────────────────────── */
+/* ─── General glass utilities (game UI) ─────────────────────────────────────── */
 
 .glass {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
@@ -64,7 +69,6 @@ body {
   overflow: hidden;
 }
 
-/* Rainbow gradient top border */
 .glass-iridescent::before {
   content: '';
   position: absolute;
@@ -82,7 +86,6 @@ body {
   z-index: 0;
 }
 
-/* Diagonal shimmer */
 .glass-iridescent::after {
   content: '';
   position: absolute;
@@ -97,8 +100,101 @@ body {
   z-index: 0;
 }
 
-/* Ensure content sits above pseudo-elements */
 .glass-iridescent > * {
   position: relative;
   z-index: 1;
+}
+
+/* ─── Hero liquid glass components ──────────────────────────────────────────── */
+
+/* Floating pill navbar */
+.hero-nav {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  right: 20px;
+  width: calc(100% - 40px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 8px 32px rgba(0, 0, 0, 0.18);
+}
+
+/* Stat cards and AI Coach card */
+.hero-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.09);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  backdrop-filter: blur(32px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.35),
+    0 12px 40px rgba(0, 0, 0, 0.2);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* Iridescent top border on cards */
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(160, 220, 255, 0.6),
+    rgba(255, 200, 255, 0.5),
+    rgba(160, 255, 220, 0.5),
+    transparent
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Card content above pseudo-element */
+.hero-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Badge pill */
+.hero-badge {
+  display: inline-flex;
+  width: fit-content;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 100px;
+  padding: 4px 12px;
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Ghost glass button ("Today's challenge →" and "Upgrade ✦") */
+.hero-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.09);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  backdrop-filter: blur(32px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.35),
+    0 12px 40px rgba(0, 0, 0, 0.2);
+  border-radius: 100px;
 }
