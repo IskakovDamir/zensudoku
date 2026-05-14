@@ -1,21 +1,29 @@
 import type { Metadata } from 'next';
 import { Onest } from 'next/font/google';
+import { Playfair_Display } from 'next/font/google';
 import './globals.css';
 
-const onest = Onest({
+const onest = Onest({ subsets: ['latin'], variable: '--font-onest' });
+const playfair = Playfair_Display({
   subsets: ['latin'],
-  variable: '--font-onest',
+  variable: '--font-playfair',
+  style: ['normal', 'italic'],
 });
 
 export const metadata: Metadata = {
   title: 'ZenSudoku',
-  description: 'A clean, distraction-free Sudoku experience',
+  description: 'The Sudoku experience, reimagined.',
+  openGraph: {
+    title: 'ZenSudoku',
+    description: 'The Sudoku experience, reimagined.',
+    siteName: 'ZenSudoku',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark h-full">
-      <body className={`${onest.variable} font-sans bg-zinc-950 text-zinc-100 antialiased min-h-screen`}>
+    <html lang="en" className="dark h-full" suppressHydrationWarning>
+      <body className={`${onest.variable} ${playfair.variable} font-sans antialiased min-h-screen`}>
         {children}
       </body>
     </html>

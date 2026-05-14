@@ -2,17 +2,31 @@
 
 @theme inline {
   --font-sans: var(--font-onest);
+  --font-playfair: var(--font-playfair);
 }
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  --bg: #ffffff;
+  --fg: #09090b;
+  --border: #e4e4e7;
+  --muted: #71717a;
+  --card: #fafafa;
+}
+
+.dark {
+  --bg: #09090b;
+  --fg: #f4f4f5;
+  --border: #27272a;
+  --muted: #71717a;
+  --card: #18181b;
 }
 
 body {
-  background: #09090b;
-  color: #f4f4f5;
-}
-
-* {
-  -webkit-tap-highlight-color: transparent;
+  background: var(--bg);
+  color: var(--fg);
 }

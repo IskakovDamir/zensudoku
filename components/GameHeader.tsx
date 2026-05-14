@@ -1,53 +1,34 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { type Difficulty } from '@/lib/sudoku-engine';
 
 interface Props {
-  difficulty: Difficulty;
-  mistakes: number;
-  elapsedSeconds: number;
-  isRunning: boolean;
-  onPause: () => void;
-  onResume: () => void;
+  difficulty: Difficulty | 'daily';
 }
 
-const MAX_MISTAKES = 3;
-
-function formatTime(s: number): string {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${String(sec).padStart(2, '0')}`;
-}
-
-const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  easy: 'Easy', medium: 'Medium', hard: 'Hard', expert: 'Expert',
+const BADGE: Record<string, { label: string; color: string }> = {
+  easy:   { label: 'Easy',   color: 'text-emerald-400 bg-emerald-500/10 ring-emerald-500/20' },
+  medium: { label: 'Medium', color: 'text-yellow-400 bg-yellow-500/10 ring-yellow-500/20' },
+  hard:   { label: 'Hard',   color: 'text-orange-400 bg-orange-500/10 ring-orange-500/20' },
+  expert: { label: 'Expert', color: 'text-red-400 bg-red-500/10 ring-red-500/20' },
+  daily:  { label: 'Daily',  color: 'text-blue-400 bg-blue-500/10 ring-blue-500/20' },
 };
 
-export function GameHeader({ difficulty, mistakes, elapsedSeconds, isRunning, onPause, onResume }: Props) {
+export function GameHeader({ difficulty }: Props) {
+  const badge = BADGE[difficulty] ?? BADGE.easy;
   return (
-    <div className="flex items-center justify-between w-full max-w-[396px]">
-      <span className="text-sm font-medium text-zinc-400 uppercase tracking-widest">{DIFFICULTY_LABELS[difficulty]}</span>
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-1.5">
-          {Array.from({ length: MAX_MISTAKES }).map((_, i) => (
-            <motion.div key={i} animate={i < mistakes ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}
-              className={`w-2.5 h-2.5 rounded-full transition-colors ${i < mistakes ? 'bg-red-500' : 'bg-zinc-700'}`}
-            />
-          ))}
-        </div>
-        <button onClick={isRunning ? onPause : onResume} className="flex items-center gap-1.5 text-sm font-mono text-zinc-300 hover:text-zinc-100 transition-colors">
-          <span className="tabular-nums">{formatTime(elapsedSeconds)}</span>
-          {isRunning ? <PauseIcon className="w-3.5 h-3.5 text-zinc-500" /> : <PlayIcon className="w-3.5 h-3.5 text-zinc-500" />}
-        </button>
-      </div>
-    </div>
+    <header className="flex items-center justify-between w-full max-w-[540px] py-4 px-1">
+      <Link href="/" className="flex items-center gap-2 text-zinc-400 hover:text-zinc-200 transition-colors text-sm">
+        <ChevronLeftIcon className="w-4 h-4" />
+        Home
+      </Link>
+      <span className="text-base font-semibold tracking-tight text-zinc-100">ZenSudoku</span>
+      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ring-1 ${badge.color}`}>{badge.label}</span>
+    </header>
   );
 }
 
-function PauseIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>;
-}
-function PlayIcon({ className }: { className?: string }) {
-  return <svg className={className} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5z" /></svg>;
+function ChevronLeftIcon({ className }: { className?: string }) {
+  return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>;
 }
