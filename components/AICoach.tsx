@@ -146,7 +146,7 @@ export function AICoach({ board, solution, difficulty, selected }: Props) {
         onClick={() => setIsOpen((o) => !o)}
         whileTap={{ scale: 0.94 }}
         className={`
-          fixed bottom-5 right-5 z-40
+          fixed bottom-[4.75rem] right-4 sm:bottom-5 sm:right-5 z-40
           flex items-center gap-2
           px-4 py-2.5 rounded-full
           text-sm font-medium
@@ -175,8 +175,8 @@ export function AICoach({ board, solution, difficulty, selected }: Props) {
             exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ type: 'spring', stiffness: 360, damping: 28 }}
             className="
-              fixed bottom-20 right-5 z-40
-              w-[calc(100vw-40px)] max-w-[380px]
+              fixed bottom-[8.25rem] right-4 sm:bottom-20 sm:right-5 z-40
+              w-[calc(100vw-32px)] sm:w-[calc(100vw-40px)] max-w-[380px]
               bg-zinc-900 border border-zinc-700/80
               rounded-2xl shadow-2xl
               flex flex-col overflow-hidden

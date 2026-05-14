@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useSudoku } from '@/hooks/useSudoku';
 import { type Difficulty, getDailyPuzzle, generatePuzzle } from '@/lib/sudoku-engine';
+import { saveResult } from '@/lib/stats';
 import { GameHeader } from './GameHeader';
 import { GameControls } from './GameControls';
 import { SudokuGrid } from './SudokuGrid';
@@ -12,6 +13,7 @@ import { WinModal } from './WinModal';
 import { GameOverModal } from './GameOverModal';
 import { AICoach } from './AICoach';
 import { DifficultySelector } from './DifficultySelector';
+import { Skeleton } from './Skeleton';
 
 interface Props {
   difficulty: string;
@@ -31,6 +33,7 @@ export function GameView({ difficulty: difficultyParam }: Props) {
 
   const [notesMode, setNotesMode] = useState(false);
   const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>(initialDifficulty);
+  const savedRef = useRef(false);
 
   // Boot game
   useEffect(() => {
@@ -40,7 +43,23 @@ export function GameView({ difficulty: difficultyParam }: Props) {
     } else {
       newGame(initialDifficulty);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Save stats on win or loss
+  useEffect(() => {
+    if (!state.difficulty || savedRef.current) return;
+    if (state.isComplete || state.isGameOver) {
+      savedRef.current = true;
+      saveResult({
+        difficulty: isDaily ? 'daily' : state.difficulty,
+        time: state.elapsedSeconds,
+        mistakes: state.mistakes,
+        hintsUsed: state.hintsUsed,
+        won: state.isComplete,
+      });
+    }
+  }, [state.isComplete, state.isGameOver, state.difficulty, state.elapsedSeconds, state.mistakes, state.hintsUsed, isDaily]);
 
   // Page visibility → auto-pause
   useEffect(() => {
@@ -86,12 +105,14 @@ export function GameView({ difficulty: difficultyParam }: Props) {
       enterValue, toggleNote, erase, undo, useHint, selectCell, pause, resume]);
 
   const handleNewGame = useCallback((d: Difficulty) => {
+    savedRef.current = false;
     setCurrentDifficulty(d);
     setNotesMode(false);
     newGame(d);
   }, [newGame]);
 
   const handleRetry = useCallback(() => {
+    savedRef.current = false;
     setNotesMode(false);
     newGame(currentDifficulty);
   }, [newGame, currentDifficulty]);
@@ -110,14 +131,22 @@ export function GameView({ difficulty: difficultyParam }: Props) {
 
   if (!state.board.length) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-7 h-7 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-zinc-950 flex flex-col items-center px-4">
+        <div className="w-full max-w-[396px]">
+          <div className="py-4 flex items-center justify-between border-b border-zinc-800 mb-5">
+            <Skeleton className="w-16 h-5" />
+            <Skeleton className="w-24 h-5" />
+            <Skeleton className="w-16 h-5" />
+          </div>
+          <Skeleton className="w-full aspect-square rounded mb-4" />
+          <Skeleton className="w-full h-12 rounded-lg" />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col items-center px-4">
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center px-4 pb-24 sm:pb-8">
       <GameHeader difficulty={isDaily ? 'daily' : state.difficulty} />
 
       {!isDaily && (
@@ -126,7 +155,7 @@ export function GameView({ difficulty: difficultyParam }: Props) {
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-4 w-full">
+      <div className="flex flex-col items-center gap-4 w-full max-w-[396px]">
         <GameControls
           elapsedSeconds={state.elapsedSeconds}
           mistakes={state.mistakes}
@@ -143,7 +172,7 @@ export function GameView({ difficulty: difficultyParam }: Props) {
         />
 
         {/* Grid with pause overlay */}
-        <div className="relative">
+        <div className="relative w-full">
           <SudokuGrid
             board={state.board}
             selected={paused ? null : state.selected}
@@ -177,22 +206,22 @@ export function GameView({ difficulty: difficultyParam }: Props) {
           disabled={paused || state.isComplete || state.isGameOver}
         />
 
-        {state.board.length > 0 && !state.isGameOver && (
-          <AICoach
-            board={state.board}
-            solution={state.solution}
-            difficulty={state.difficulty}
-            selected={state.selected}
-          />
-        )}
-
         <button
           onClick={handleRetry}
-          className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors pb-8"
+          className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors pb-2"
         >
           Restart puzzle
         </button>
       </div>
+
+      {state.board.length > 0 && !state.isGameOver && (
+        <AICoach
+          board={state.board}
+          solution={state.solution}
+          difficulty={state.difficulty}
+          selected={state.selected}
+        />
+      )}
 
       <WinModal
         isOpen={state.isComplete}

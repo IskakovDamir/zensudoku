@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Onest } from 'next/font/google';
 import { Playfair_Display } from 'next/font/google';
 import './globals.css';
+import { PageTransition } from '@/components/PageTransition';
+import { BottomNav } from '@/components/BottomNav';
 
 const onest = Onest({ subsets: ['latin'], variable: '--font-onest' });
 const playfair = Playfair_Display({
@@ -26,7 +28,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body
         className={`${onest.variable} ${playfair.variable} font-sans antialiased min-h-screen`}
       >
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
+        <BottomNav />
       </body>
     </html>
   );

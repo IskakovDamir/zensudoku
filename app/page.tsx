@@ -38,7 +38,7 @@ const DIFFICULTIES = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col">
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 flex flex-col pb-20 sm:pb-0">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-800">
         <div className="flex items-center gap-1.5">
