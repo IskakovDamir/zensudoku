@@ -1,15 +1,23 @@
 import type { Metadata } from 'next';
 import { Onest } from 'next/font/google';
-import { Playfair_Display } from 'next/font/google';
+import { Playfair_Display, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { PageTransition } from '@/components/PageTransition';
 import { BottomNav } from '@/components/BottomNav';
 
 const onest = Onest({ subsets: ['latin'], variable: '--font-onest' });
+
 const playfair = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair',
+  weight: ['400', '700'],
   style: ['normal', 'italic'],
+});
+
+const dmSans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+  weight: ['300', '400'],
 });
 
 export const metadata: Metadata = {
@@ -26,7 +34,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark h-full" suppressHydrationWarning>
       <body
-        className={`${onest.variable} ${playfair.variable} font-sans antialiased min-h-screen`}
+        className={`${onest.variable} ${playfair.variable} ${dmSans.variable} font-sans antialiased min-h-screen`}
       >
         <PageTransition>
           {children}
