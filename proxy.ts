@@ -23,6 +23,7 @@ export async function proxy(request: NextRequest) {
     }
   );
 
+  // Refresh session if expired
   await supabase.auth.getUser();
 
   return supabaseResponse;

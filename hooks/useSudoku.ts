@@ -150,7 +150,11 @@ function reducer(state: GameState, action: Action): GameState {
       const next = cloneBoard(state.board);
       next[row][col] = { ...next[row][col], value: 0, notes: new Set() };
 
-      return { ...state, board: applyConflicts(next), history: [...state.history, prev] };
+      return {
+        ...state,
+        board: applyConflicts(next),
+        history: [...state.history, prev],
+      };
     }
 
     case 'UNDO': {
@@ -168,10 +172,13 @@ function reducer(state: GameState, action: Action): GameState {
     case 'USE_HINT': {
       if (state.hintsUsed >= MAX_HINTS || state.isComplete || state.isGameOver) return state;
 
+      // Find empty cells, prefer selected
       const emptyCells: [number, number][] = [];
-      for (let r = 0; r < 9; r++)
-        for (let c = 0; c < 9; c++)
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
           if (state.board[r][c].value === 0) emptyCells.push([r, c]);
+        }
+      }
       if (emptyCells.length === 0) return state;
 
       const [selR, selC] = state.selected ?? [-1, -1];

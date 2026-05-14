@@ -26,10 +26,13 @@ export function GameView({ difficulty: difficultyParam }: Props) {
   const isDaily = difficultyParam === 'daily';
   const initialDifficulty = isDaily ? 'medium' : toDifficulty(difficultyParam);
 
-  const { state, newGame, selectCell, enterValue, toggleNote, erase, undo, useHint, pause, resume } = useSudoku();
+  const { state, newGame, selectCell, enterValue, toggleNote, erase, undo, useHint, pause, resume } =
+    useSudoku();
+
   const [notesMode, setNotesMode] = useState(false);
   const [currentDifficulty, setCurrentDifficulty] = useState<Difficulty>(initialDifficulty);
 
+  // Boot game
   useEffect(() => {
     if (isDaily) {
       const today = new Date().toISOString().split('T')[0];
@@ -39,38 +42,67 @@ export function GameView({ difficulty: difficultyParam }: Props) {
     }
   }, []);
 
+  // Page visibility → auto-pause
   useEffect(() => {
-    const handleVisibility = () => { if (document.hidden) pause(); };
+    const handleVisibility = () => {
+      if (document.hidden) pause();
+    };
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [pause]);
 
+  // Keyboard input
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       if (state.isGameOver) return;
-      if (e.key >= '1' && e.key <= '9') { const n = parseInt(e.key); notesMode ? toggleNote(n) : enterValue(n); return; }
-      if (e.key === '0' || e.key === 'Backspace' || e.key === 'Delete') { erase(); return; }
+
+      if (e.key >= '1' && e.key <= '9') {
+        const n = parseInt(e.key);
+        notesMode ? toggleNote(n) : enterValue(n);
+        return;
+      }
+      if (e.key === '0' || e.key === 'Backspace' || e.key === 'Delete') {
+        erase(); return;
+      }
       if (e.key === 'z' && !e.shiftKey) { undo(); return; }
       if (e.key === 'n') { setNotesMode((m) => !m); return; }
       if (e.key === 'h') { useHint(); return; }
       if (e.key === ' ') { e.preventDefault(); state.isRunning ? pause() : resume(); return; }
+
       if (!state.selected) return;
       const [r, c] = state.selected;
-      const dirs: Record<string, [number, number]> = { ArrowUp: [Math.max(0, r - 1), c], ArrowDown: [Math.min(8, r + 1), c], ArrowLeft: [r, Math.max(0, c - 1)], ArrowRight: [r, Math.min(8, c + 1)] };
+      const dirs: Record<string, [number, number]> = {
+        ArrowUp:    [Math.max(0, r - 1), c],
+        ArrowDown:  [Math.min(8, r + 1), c],
+        ArrowLeft:  [r, Math.max(0, c - 1)],
+        ArrowRight: [r, Math.min(8, c + 1)],
+      };
       if (dirs[e.key]) { e.preventDefault(); selectCell(...dirs[e.key]); }
     }
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [notesMode, state.selected, state.isRunning, state.isGameOver, enterValue, toggleNote, erase, undo, useHint, selectCell, pause, resume]);
+  }, [notesMode, state.selected, state.isRunning, state.isGameOver,
+      enterValue, toggleNote, erase, undo, useHint, selectCell, pause, resume]);
 
-  const handleNewGame = useCallback((d: Difficulty) => { setCurrentDifficulty(d); setNotesMode(false); newGame(d); }, [newGame]);
-  const handleRetry = useCallback(() => { setNotesMode(false); newGame(currentDifficulty); }, [newGame, currentDifficulty]);
+  const handleNewGame = useCallback((d: Difficulty) => {
+    setCurrentDifficulty(d);
+    setNotesMode(false);
+    newGame(d);
+  }, [newGame]);
 
+  const handleRetry = useCallback(() => {
+    setNotesMode(false);
+    newGame(currentDifficulty);
+  }, [newGame, currentDifficulty]);
+
+  // Remaining digit counts
   const remainingCounts: Record<number, number> = {};
   for (let n = 1; n <= 9; n++) {
     let count = 0;
-    for (const row of state.board) for (const cell of row) { if (cell.value === n) count++; }
+    for (const row of state.board) {
+      for (const cell of row) { if (cell.value === n) count++; }
+    }
     remainingCounts[n] = 9 - count;
   }
 
@@ -110,11 +142,24 @@ export function GameView({ difficulty: difficultyParam }: Props) {
           onResume={resume}
         />
 
+        {/* Grid with pause overlay */}
         <div className="relative">
-          <SudokuGrid board={state.board} selected={paused ? null : state.selected} onSelect={selectCell} masked={paused} />
+          <SudokuGrid
+            board={state.board}
+            selected={paused ? null : state.selected}
+            onSelect={selectCell}
+            masked={paused}
+          />
+
           <AnimatePresence>
             {paused && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 rounded cursor-pointer" onClick={resume}>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex items-center justify-center bg-zinc-950/80 rounded cursor-pointer"
+                onClick={resume}
+              >
                 <div className="flex flex-col items-center gap-2 text-zinc-400">
                   <PlayIcon className="w-10 h-10" />
                   <span className="text-sm">Tap to resume</span>
@@ -124,17 +169,47 @@ export function GameView({ difficulty: difficultyParam }: Props) {
           </AnimatePresence>
         </div>
 
-        <NumberPad onNumber={(n) => notesMode ? toggleNote(n) : enterValue(n)} onErase={erase} notesMode={notesMode} remainingCounts={remainingCounts} disabled={paused || state.isComplete || state.isGameOver} />
+        <NumberPad
+          onNumber={(n) => notesMode ? toggleNote(n) : enterValue(n)}
+          onErase={erase}
+          notesMode={notesMode}
+          remainingCounts={remainingCounts}
+          disabled={paused || state.isComplete || state.isGameOver}
+        />
 
         {state.board.length > 0 && !state.isGameOver && (
-          <AICoach board={state.board} solution={state.solution} difficulty={state.difficulty} selected={state.selected} />
+          <AICoach
+            board={state.board}
+            solution={state.solution}
+            difficulty={state.difficulty}
+            selected={state.selected}
+          />
         )}
 
-        <button onClick={handleRetry} className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors pb-8">Restart puzzle</button>
+        <button
+          onClick={handleRetry}
+          className="text-xs text-zinc-600 hover:text-zinc-400 transition-colors pb-8"
+        >
+          Restart puzzle
+        </button>
       </div>
 
-      <WinModal isOpen={state.isComplete} difficulty={isDaily ? 'daily' : state.difficulty} elapsedSeconds={state.elapsedSeconds} mistakes={state.mistakes} hintsUsed={state.hintsUsed} onNewGame={handleNewGame} onClose={() => {}} />
-      <GameOverModal isOpen={state.isGameOver} difficulty={isDaily ? 'daily' : state.difficulty} onRetry={handleRetry} onNewDifficulty={handleNewGame} />
+      <WinModal
+        isOpen={state.isComplete}
+        difficulty={isDaily ? 'daily' : state.difficulty}
+        elapsedSeconds={state.elapsedSeconds}
+        mistakes={state.mistakes}
+        hintsUsed={state.hintsUsed}
+        onNewGame={handleNewGame}
+        onClose={() => {}}
+      />
+
+      <GameOverModal
+        isOpen={state.isGameOver}
+        difficulty={isDaily ? 'daily' : state.difficulty}
+        onRetry={handleRetry}
+        onNewDifficulty={handleNewGame}
+      />
     </div>
   );
 }

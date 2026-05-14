@@ -30,7 +30,7 @@ export function SudokuGrid({ board, selected, onSelect, masked = false }: Props)
     if (cell.isConflict) bg = 'bg-red-500/15';
     else if (isSelected) bg = 'bg-blue-500/25';
     else if (sameValue) bg = 'bg-blue-500/10';
-    else if (sameLine) bg = 'bg-white/[0.035]';
+    else if (sameLine) bg = 'bg-white/[0.035] dark:bg-white/[0.035]';
 
     let text = '';
     if (cell.isConflict) text = 'text-red-400';
@@ -49,14 +49,26 @@ export function SudokuGrid({ board, selected, onSelect, masked = false }: Props)
   }
 
   return (
-    <div className="inline-grid grid-cols-9 border-2 border-zinc-400 rounded overflow-hidden" role="grid" aria-label="Sudoku board">
+    <div
+      className="inline-grid grid-cols-9 border-2 border-zinc-400 rounded overflow-hidden"
+      role="grid"
+      aria-label="Sudoku board"
+    >
       {board.map((rowCells, row) =>
         rowCells.map((cell, col) => (
           <motion.div
             key={`${row}-${col}`}
             role="gridcell"
             aria-label={`Row ${row + 1}, Column ${col + 1}${cell.value ? `, value ${cell.value}` : ', empty'}`}
-            className={`relative w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] flex items-center justify-center select-none cursor-pointer transition-colors duration-75 text-[17px] sm:text-[19px] font-medium ${getCellClasses(row, col, cell)} ${getBorderClasses(row, col)}`}
+            className={`
+              relative w-[42px] h-[42px] sm:w-[48px] sm:h-[48px]
+              flex items-center justify-center
+              select-none cursor-pointer
+              transition-colors duration-75
+              text-[17px] sm:text-[19px] font-medium
+              ${getCellClasses(row, col, cell)}
+              ${getBorderClasses(row, col)}
+            `}
             onPointerDown={() => onSelect(row, col)}
             whileTap={{ scale: 0.88 }}
           >
@@ -83,7 +95,12 @@ function NoteGrid({ notes }: { notes: Set<number> }) {
   return (
     <div className="grid grid-cols-3 w-full h-full p-[2px]">
       {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-        <span key={n} className={`flex items-center justify-center text-[7px] leading-none font-normal ${notes.has(n) ? 'text-zinc-400' : 'text-transparent'}`}>
+        <span
+          key={n}
+          className={`flex items-center justify-center text-[7px] leading-none font-normal ${
+            notes.has(n) ? 'text-zinc-400' : 'text-transparent'
+          }`}
+        >
           {n}
         </span>
       ))}

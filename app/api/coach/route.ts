@@ -11,9 +11,9 @@ interface BoardCell {
 
 function boardToString(board: BoardCell[][]): string {
   return board
-    .map((row) =>
+    .map((row, r) =>
       row
-        .map((cell) => {
+        .map((cell, c) => {
           const v = cell.value === 0 ? '.' : String(cell.value);
           const conflict = cell.isConflict ? '!' : '';
           return `${v}${conflict}`;
@@ -23,7 +23,7 @@ function boardToString(board: BoardCell[][]): string {
     .join('\n');
 }
 
-function findBestHintCell(board: BoardCell[][]): [number, number] | null {
+function findBestHintCell(board: BoardCell[][], difficulty: string): [number, number] | null {
   const emptyCells: [number, number][] = [];
   for (let r = 0; r < 9; r++) {
     for (let c = 0; c < 9; c++) {
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const { board, difficulty, selected } = await req.json();
 
   const boardStr = boardToString(board);
-  const hintCell = findBestHintCell(board);
+  const hintCell = findBestHintCell(board, difficulty);
   const hintContext = hintCell
     ? `The user might want to look at row ${hintCell[0] + 1}, column ${hintCell[1] + 1}.`
     : '';
