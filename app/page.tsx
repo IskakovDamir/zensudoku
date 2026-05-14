@@ -41,7 +41,7 @@ const DIFFICULTIES = [
 
 export default function HomePage() {
   return (
-    <div className="bg-zinc-950 pb-20 sm:pb-0">
+    <div className="pb-20 sm:pb-0">
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden" style={{ height: '100dvh' }}>
         {/* Video background */}
@@ -223,7 +223,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Difficulty picker ─────────────────────────────────────────────── */}
-      <section className="px-5 py-20">
+      <section className="bg-zinc-950 px-5 py-20">
         <div className="max-w-2xl mx-auto">
           <p
             className="text-[10px] uppercase tracking-[0.22em] text-zinc-500 text-center mb-8"
